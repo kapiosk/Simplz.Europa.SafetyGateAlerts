@@ -26,16 +26,12 @@ public sealed class OpendatasoftClient
         int skip = 0;
         OpendatasoftResult? response = null;
 
-        _logger.LogInformation("Starting to fetch SafetyGateAlerts with existing {Count}", _historyContext.Results.Count());
-
         while (skip < (response?.TotalCount ?? 1))
         {
             response = await GetSafetyGateAlertsAsync(skip, take);
-            _historyContext.InsertOrUpdate(response?.Results ?? []);
+            await _historyContext.InsertOrUpdateAsync(response?.Results.Select(r => (HistoryItem)r).ToList() ?? []);
             skip += take;
         }
-
-        _logger.LogInformation("Finished fetching SafetyGateAlerts with new {Count}", _historyContext.Results.Count());
     }
 
     public async Task<OpendatasoftResult?> GetSafetyGateAlertsAsync(int skip, int take = 20)

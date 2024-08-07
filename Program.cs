@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Simplz.Europa.SafetyGateAlerts.Data;
@@ -7,7 +8,7 @@ using Simplz.Europa.SafetyGateAlerts.Services;
 
 ServiceCollection services = new();
 
-services.AddSingleton<TimeProvider>(sp => new ManualTimeProvider(TimeSpan.Zero));
+services.AddSingleton<TimeProvider>(sp => new ManualTimeProvider(TimeSpan.FromDays(-400)));
 
 services.AddLogging(builder =>
 {
@@ -33,6 +34,6 @@ services.AddHttpClient<OpendatasoftClient>(httpClient =>
     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
 });
 
-await using ServiceProvider serviceProvider = services.BuildServiceProvider();
-
-await serviceProvider.GetRequiredService<OpendatasoftClient>().ImportAsync();
+using var serviceScope = services.BuildServiceProvider().CreateScope();
+await serviceScope.ServiceProvider.GetRequiredService<HistoryContext>().Database.MigrateAsync();
+await serviceScope.ServiceProvider.GetRequiredService<OpendatasoftClient>().ImportAsync();

@@ -1,7 +1,5 @@
-using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Simplz.Europa.SafetyGateAlerts.Models;
 
 namespace Simplz.Europa.SafetyGateAlerts.Data;
 
@@ -21,23 +19,37 @@ public sealed class HistoryContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder options)
         => options.UseSqlite($"Data Source={DbPath}");
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Result>().HasKey(x => x.RapexUrl);
-    }
+    public DbSet<HistoryItem> HistoryItems => Set<HistoryItem>();
 
-    public DbSet<Result> Results => Set<Result>();
-
-    public void InsertOrUpdate(List<Result> newResults)
+    public async Task InsertOrUpdateAsync(List<HistoryItem> newItems)
     {
         try
         {
-            this.BulkInsertOrUpdate(newResults);
-            this.BulkSaveChanges();
+            foreach (var newItem in newItems)
+            {
+                var existing = await HistoryItems.FirstOrDefaultAsync(i => i.Id == newItem.Id);
+                if (existing is not null)
+                {
+                    if (newItem.UpdatedAt >= existing.UpdatedAt)
+                    {
+                        existing.Data = newItem.Data;
+                        existing.UpdatedAt = newItem.UpdatedAt;
+                        existing.Title = newItem.Title;
+                        existing.Description = newItem.Description;
+                        existing.Url = newItem.Url;
+                        HistoryItems.Update(existing);
+                    }
+                }
+                else
+                {
+                    await HistoryItems.AddAsync(newItem);
+                }
+                await SaveChangesAsync();
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error inserting or updating {Count} results", newResults.Count);
+            _logger.LogError(ex, "Error inserting or updating {Count} results", newItems.Count);
         }
     }
 }

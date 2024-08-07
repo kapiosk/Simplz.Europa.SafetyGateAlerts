@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Simplz.Europa.SafetyGateAlerts.Models;
@@ -93,4 +94,14 @@ public sealed record Result
 
     // [JsonPropertyName("measures_country")]
     // public List<string> MeasuresCountry { get; set; } = [];
+
+    public static explicit operator Data.HistoryItem(Result result)
+    {
+        return new Data.HistoryItem(result.RapexUrl, JsonSerializer.Serialize(result), result.ModificationDate)
+        {
+            Title = result.ProductName,
+            Description = result.ProductDescription,
+            Url = result.RapexUrl
+        };
+    }
 }
