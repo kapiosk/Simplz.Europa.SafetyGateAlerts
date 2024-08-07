@@ -21,8 +21,9 @@ public sealed class HistoryContext : DbContext
 
     public DbSet<HistoryItem> HistoryItems => Set<HistoryItem>();
 
-    public async Task InsertOrUpdateAsync(List<HistoryItem> newItems)
+    public async Task<List<HistoryItem>> InsertOrUpdateAsync(List<HistoryItem> newItems)
     {
+        List<HistoryItem> itemsToBeNotified = [];
         try
         {
             foreach (var newItem in newItems)
@@ -30,7 +31,7 @@ public sealed class HistoryContext : DbContext
                 var existing = await HistoryItems.FirstOrDefaultAsync(i => i.Id == newItem.Id);
                 if (existing is not null)
                 {
-                    if (newItem.UpdatedAt >= existing.UpdatedAt)
+                    if (newItem.UpdatedAt > existing.UpdatedAt)
                     {
                         existing.Data = newItem.Data;
                         existing.UpdatedAt = newItem.UpdatedAt;
@@ -38,11 +39,13 @@ public sealed class HistoryContext : DbContext
                         existing.Description = newItem.Description;
                         existing.Url = newItem.Url;
                         HistoryItems.Update(existing);
+                        itemsToBeNotified.Add(existing);
                     }
                 }
                 else
                 {
                     await HistoryItems.AddAsync(newItem);
+                    itemsToBeNotified.Add(newItem);
                 }
                 await SaveChangesAsync();
             }
@@ -51,5 +54,6 @@ public sealed class HistoryContext : DbContext
         {
             _logger.LogError(ex, "Error inserting or updating {Count} results", newItems.Count);
         }
+        return itemsToBeNotified;
     }
 }

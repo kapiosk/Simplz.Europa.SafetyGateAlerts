@@ -8,7 +8,7 @@ using Simplz.Europa.SafetyGateAlerts.Services;
 
 ServiceCollection services = new();
 
-services.AddSingleton<TimeProvider>(sp => new ManualTimeProvider(TimeSpan.FromDays(-400)));
+services.AddSingleton<TimeProvider>(sp => new ManualTimeProvider(TimeSpan.Zero));
 
 services.AddLogging(builder =>
 {
@@ -26,7 +26,7 @@ services.AddHttpClient<NtfyClient>(httpClient =>
     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
 });
 
-services.AddHttpClient<OpendatasoftClient>(httpClient =>
+services.AddHttpClient<IImportService, OpendatasoftClient>(httpClient =>
 {
     httpClient.BaseAddress = new Uri("https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/");
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
@@ -35,5 +35,12 @@ services.AddHttpClient<OpendatasoftClient>(httpClient =>
 });
 
 using var serviceScope = services.BuildServiceProvider().CreateScope();
-await serviceScope.ServiceProvider.GetRequiredService<HistoryContext>().Database.MigrateAsync();
-await serviceScope.ServiceProvider.GetRequiredService<OpendatasoftClient>().ImportAsync();
+using var historyContext = serviceScope.ServiceProvider.GetRequiredService<HistoryContext>();
+await historyContext.Database.MigrateAsync();
+
+foreach (var importService in serviceScope.ServiceProvider.GetServices<IImportService>())
+{
+    var itemsToBeNotified = await importService.ImportAsync();
+    //Get config for service from historyContext
+    //var ntfyClient = serviceScope.ServiceProvider.GetRequiredService<NtfyClient>();
+}

@@ -5,7 +5,7 @@ using Simplz.Europa.SafetyGateAlerts.Models;
 
 namespace Simplz.Europa.SafetyGateAlerts.Services;
 
-public sealed class OpendatasoftClient
+public sealed class OpendatasoftClient : IImportService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<OpendatasoftClient> _logger;
@@ -20,8 +20,9 @@ public sealed class OpendatasoftClient
         _historyContext = historyContext;
     }
 
-    public async Task ImportAsync()
+    public async Task<List<HistoryItem>> ImportAsync()
     {
+        List<HistoryItem> itemsToBeNotified = [];
         int take = 20;
         int skip = 0;
         OpendatasoftResult? response = null;
@@ -29,9 +30,11 @@ public sealed class OpendatasoftClient
         while (skip < (response?.TotalCount ?? 1))
         {
             response = await GetSafetyGateAlertsAsync(skip, take);
-            await _historyContext.InsertOrUpdateAsync(response?.Results.Select(r => (HistoryItem)r).ToList() ?? []);
+            itemsToBeNotified.AddRange(await _historyContext.InsertOrUpdateAsync(response?.Results.Select(r => (HistoryItem)r).ToList() ?? []));
             skip += take;
         }
+
+        return itemsToBeNotified;
     }
 
     public async Task<OpendatasoftResult?> GetSafetyGateAlertsAsync(int skip, int take = 20)
