@@ -35,6 +35,11 @@ services.AddHttpClient<IImportService, OpendatasoftClient>(httpClient =>
     AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
 });
 
+// services.AddScoped(sp =>
+// {
+//     return new InfluxDB3.Client.InfluxDBClient(Environment.GetEnvironmentVariable("INFLUXDB_URL"));
+// });
+
 using var serviceScope = services.BuildServiceProvider().CreateScope();
 using var historyContext = serviceScope.ServiceProvider.GetRequiredService<HistoryContext>();
 await historyContext.Database.MigrateAsync();
