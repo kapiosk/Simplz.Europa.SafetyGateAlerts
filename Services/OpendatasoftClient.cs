@@ -41,7 +41,7 @@ public sealed class OpendatasoftClient : IImportService
     {
         string? content = null;
         HttpResponseMessage? httpResponseMessage = null;
-        string url = $"healthref-europe-rapex-en/records?where=alert_date%20%3E%20'{_timeProvider.GetUtcNow():yyyy-01-01}'&order_by=modification_date%20ASC&limit={take}&offset={skip}";
+        string url = $"healthref-europe-rapex-en/records?where=alert_date%20%3E%20'{_timeProvider.GetUtcNow().AddYears(-1):yyyy-01-01}'&order_by=modification_date%20ASC&limit={take}&offset={skip}";
         try
         {
             //where=alert_country%20%3D%20%27Cyprus%27
